@@ -61,7 +61,7 @@ const memoryMode = hasFlag('memory');
 // -- Main --
 (async () => {
   console.log('');
-  console.log('  easytyga v1.0.2');
+  console.log('  easytyga v1.0.3');
   console.log('  Tunnel your local AI to the web');
   console.log('');
 

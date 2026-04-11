@@ -1,6 +1,6 @@
 {
   "name": "easytyga",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Tunnel your local AI to the internet. Secure. One command. Works with Ollama, vLLM, and any HTTP service.",
   "bin": {
     "easytyga": "bin/cli.js"

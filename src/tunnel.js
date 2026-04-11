@@ -181,13 +181,13 @@ async function createTunnel(opts) {
         }
         if (listMode) {
           console.log('');
-          console.log('  Your GPU is listed on the marketplace.');
-          console.log('  Renters can find and use your GPU now.');
+          console.log('  Want to earn money from your GPU?');
+          console.log('  List it on the marketplace: https://gpusmarket.com/host/setup');
         }
         if (memoryMode) {
           console.log('');
-          console.log('  Persistent memory enabled.');
-          console.log('  Conversations persist across sessions.');
+          console.log('  Want persistent conversation memory?');
+          console.log('  Set it up at: https://agenticmemory.ai/onboard/mcp');
         }
         console.log('');
         console.log('  Press Ctrl+C to disconnect.');

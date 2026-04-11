@@ -10,7 +10,7 @@ npx easytyga
 
 ```
   ┌─────────────────────────────────────┐
-  │          easytyga v1.0.2             │
+  │          easytyga v1.0.3             │
   │  Tunnel your local AI to the web     │
   └─────────────────────────────────────┘
 
