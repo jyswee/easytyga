@@ -1,0 +1,32 @@
+{
+  "name": "easytyga",
+  "version": "1.0.2",
+  "description": "Tunnel your local AI to the internet. Secure. One command. Works with Ollama, vLLM, and any HTTP service.",
+  "bin": {
+    "easytyga": "bin/cli.js"
+  },
+  "keywords": [
+    "tunnel",
+    "ollama",
+    "ngrok",
+    "reverse-proxy",
+    "llm",
+    "gpu",
+    "ai",
+    "inference",
+    "remote-access",
+    "api-gateway",
+    "vllm",
+    "local-ai"
+  ],
+  "author": "Joe Wee <jyswee@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jyswee/easytyga"
+  },
+  "homepage": "https://easytyga.com",
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}
