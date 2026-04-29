@@ -45,6 +45,21 @@ async function checkOllama(ollamaUrl) {
   });
 }
 
+// ── Verify OpenClaw gateway is reachable ──
+
+async function checkOpenClaw(targetUrl) {
+  return new Promise((resolve) => {
+    const url = new URL('/', targetUrl);
+    const transport = url.protocol === 'https:' ? https : http;
+    const req = transport.get(url, { timeout: 5000 }, (res) => {
+      res.resume();
+      resolve(res.statusCode >= 200 && res.statusCode < 400);
+    });
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+  });
+}
+
 // ── Get available models ──
 
 async function getModels(ollamaUrl) {
@@ -119,19 +134,30 @@ function forwardToOllama(ws, msg, ollamaUrl) {
 // ── Main tunnel function ──
 
 async function createTunnel(opts) {
-  const { ollamaUrl, serverUrl, key, listMode, memoryMode, gpu } = opts;
+  const { ollamaUrl, serverUrl, key, listMode, memoryMode, openclawMode, gpu } = opts;
 
-  // Check Ollama
-  const version = await checkOllama(ollamaUrl);
-  if (!version) {
-    throw new Error(`Cannot reach Ollama at ${ollamaUrl}\nMake sure Ollama is running: ollama serve`);
-  }
-  console.log(`  Ollama ${typeof version === 'string' ? `v${version}` : ''} reachable`);
+  let models = [];
 
-  // Get models
-  const models = await getModels(ollamaUrl);
-  if (models.length > 0) {
-    console.log(`  Models: ${models.slice(0, 5).join(', ')}${models.length > 5 ? ` (+${models.length - 5} more)` : ''}`);
+  if (openclawMode) {
+    // Check OpenClaw gateway
+    const healthy = await checkOpenClaw(ollamaUrl);
+    if (!healthy) {
+      throw new Error(`Cannot reach OpenClaw at ${ollamaUrl}\nMake sure your OpenClaw gateway is running: openclaw gateway`);
+    }
+    console.log('  OpenClaw gateway reachable');
+  } else {
+    // Check Ollama
+    const version = await checkOllama(ollamaUrl);
+    if (!version) {
+      throw new Error(`Cannot reach Ollama at ${ollamaUrl}\nMake sure Ollama is running: ollama serve`);
+    }
+    console.log(`  Ollama ${typeof version === 'string' ? `v${version}` : ''} reachable`);
+
+    // Get models
+    models = await getModels(ollamaUrl);
+    if (models.length > 0) {
+      console.log(`  Models: ${models.slice(0, 5).join(', ')}${models.length > 5 ? ` (+${models.length - 5} more)` : ''}`);
+    }
   }
 
   // Generate a tunnel key if none provided
@@ -157,6 +183,7 @@ async function createTunnel(opts) {
         models: models,
         list: listMode || false,
         memory: memoryMode || false,
+        openclaw: openclawMode || false,
       });
     });
 
@@ -189,7 +216,21 @@ async function createTunnel(opts) {
           console.log('  Want persistent conversation memory?');
           console.log('  Set it up at: https://agenticmemory.ai/onboard/mcp');
         }
+        if (openclawMode) {
+          console.log('');
+          console.log('  Use the Public URL as your webhook endpoint');
+          console.log('  for WhatsApp, Telegram, Slack, Discord, or Signal.');
+        }
+        if (msg.creditBalance > 0) {
+          console.log('');
+          console.log(`  Credits:     ${msg.creditBalance.toLocaleString()} requests remaining`);
+        } else if (msg.hasCredits === false && !msg.creditBalance) {
+          console.log('');
+          console.log('  Plan:        Free (100 req/hr)');
+          console.log('  Buy credits: https://easytyga.com/credits');
+        }
         console.log('');
+        console.log('  Manage your account: https://easytyga.com/account');
         console.log('  Press Ctrl+C to disconnect.');
         console.log('');
         return;
@@ -231,9 +272,10 @@ async function createTunnel(opts) {
   process.on('SIGINT', () => {
     console.log('\n\n  Tunnel closed. Goodbye!');
     if (listMode) console.log('  Your listing has been set to offline.');
+    if (openclawMode) console.log('  Your OpenClaw gateway is no longer public.');
     process.exit(0);
   });
   process.on('SIGTERM', () => { process.exit(0); });
 }
 
-module.exports = { createTunnel, checkOllama, getModels };
+module.exports = { createTunnel, checkOllama, checkOpenClaw, getModels };

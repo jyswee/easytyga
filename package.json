@@ -1,14 +1,14 @@
 {
   "name": "easytyga",
-  "version": "1.0.3",
-  "description": "Tunnel your local AI to the internet. Secure. One command. Works with Ollama, vLLM, and any HTTP service.",
+  "version": "1.1.0",
+  "description": "Tunnel your local AI to the internet. Secure. One command. Works with Ollama, OpenClaw, vLLM, and any HTTP service.",
   "bin": {
     "easytyga": "bin/cli.js"
   },
   "keywords": [
     "tunnel",
     "ollama",
-    "ngrok",
+    "self-hosted",
     "reverse-proxy",
     "llm",
     "gpu",
@@ -17,7 +17,10 @@
     "remote-access",
     "api-gateway",
     "vllm",
-    "local-ai"
+    "local-ai",
+    "openclaw",
+    "homelab",
+    "webhook"
   ],
   "author": "Joe Wee <jyswee@gmail.com>",
   "license": "MIT",
