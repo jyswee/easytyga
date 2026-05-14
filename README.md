@@ -9,7 +9,7 @@ npx easytyga
 ```
 
 ```
-  easytyga v1.1.0
+  easytyga v1.1.1
   Tunnel your local AI to the web
 
   GPU:     NVIDIA GeForce RTX 4090
@@ -87,6 +87,7 @@ Your IP stays private. No ports to open. Works from any network.
 - **Model detection** - discovers installed Ollama models automatically
 - **OpenClaw support** - native `--openclaw` flag for AI assistant gateways
 - **Auto-reconnect** - exponential backoff, set and forget
+- **Client-side heartbeat** - detects dead connections within 30s, auto-reconnects when relay restarts
 - **Streaming** - full support for streaming responses (chat, generate)
 - **Any HTTP service** - not locked to Ollama, tunnel anything
 

@@ -11,8 +11,8 @@
  *   npx easytyga --key et_abc123...           # Use existing key
  */
 
-const { createTunnel } = require('../src/tunnel');
-const { detectGpu } = require('../src/detect');
+const { createTunnel } = require('../dist/tunnel');
+const { detectGpu } = require('../dist/detect');
 
 // -- CLI args --
 const args = process.argv.slice(2);
