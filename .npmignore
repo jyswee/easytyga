@@ -1,0 +1,7 @@
+src/
+.claude/
+.git/
+.gitignore
+node_modules/
+tests/
+*.test.js
