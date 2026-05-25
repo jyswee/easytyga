@@ -1,38 +1,25 @@
 #!/usr/bin/env node
 /**
- * easytyga - Tunnel your local AI to the internet. Secure. One command.
+ * easytyga v2 - Tunnel your local AI to the internet. Secure. One command.
  *
  * Usage:
- *   npx easytyga                              # Free tunnel with auto-generated auth
- *   npx easytyga --openclaw                   # Tunnel OpenClaw AI assistant gateway
- *   npx easytyga --target http://...:8080     # Custom local endpoint
- *   npx easytyga --list                       # List your GPU on the marketplace
- *   npx easytyga --memory                     # Add persistent memory
- *   npx easytyga --key et_abc123...           # Use existing key
+ *   npx easytyga                                          # Free tunnel (Ollama default)
+ *   npx easytyga --target http://...:8080                 # Custom local endpoint
+ *   npx easytyga --openclaw                               # Tunnel OpenClaw gateway
+ *   npx easytyga --tunnel ollama=http://localhost:11434   # Multi-tunnel mode
+ *   npx easytyga --config easytyga.config.json            # Config file mode
+ *   npx easytyga --list                                   # List GPU on marketplace
+ *   npx easytyga --memory                                 # Add persistent memory
+ *   npx easytyga --key et_abc123...                       # Use existing key
  */
 
-const { createTunnel } = require('../dist/tunnel');
+const { TunnelManager } = require('../dist/TunnelManager');
 const { detectGpu } = require('../dist/detect');
+const { resolveTunnels, hasFlag } = require('../dist/config');
 
-// -- CLI args --
 const args = process.argv.slice(2);
 
-function getArg(name, fallback) {
-  const idx = args.indexOf('--' + name);
-  return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
-}
-function hasFlag(name) {
-  return args.includes('--' + name);
-}
-function getOptionalArg(name, fallback) {
-  const idx = args.indexOf('--' + name);
-  if (idx < 0) return undefined;
-  const next = args[idx + 1];
-  if (next && !next.startsWith('--')) return next;
-  return fallback;
-}
-
-if (hasFlag('help') || hasFlag('h')) {
+if (hasFlag(args, 'help') || hasFlag(args, 'h')) {
   console.log(`
   easytyga - Tunnel your local AI to the internet
 
@@ -42,67 +29,88 @@ if (hasFlag('help') || hasFlag('h')) {
     npx easytyga --memory                  Add persistent conversation memory
     npx easytyga --key et_...              Use existing key
 
+  Multi-tunnel:
+    npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localhost:8000
+    npx easytyga --config easytyga.config.json
+
   Options:
-    --target <url>    Local endpoint (default: http://localhost:11434)
-    --server <url>    Relay server (default: wss://easytyga.com/ws)
-    --key <key>       Connection key
-    --list            Register on the GPU marketplace
-    --memory          Enable persistent memory
-    --openclaw [port] OpenClaw gateway mode (default port: 18789)
-    --help            Show this help
+    --target <url>      Local endpoint (default: http://localhost:11434)
+    --server <url>      Relay server (default: wss://easytyga.com/ws)
+    --key <key>         Connection key
+    --list              Register on the GPU marketplace
+    --memory            Enable persistent memory
+    --openclaw [port]   OpenClaw gateway mode (default port: 18789)
+    --tunnel name=url   Add a named tunnel (repeatable)
+    --config <path>     Load tunnel config from JSON file
+    --help              Show this help
 
   Examples:
-    npx easytyga                           Tunnel local Ollama
-    npx easytyga --target http://...:8080  Tunnel any HTTP service
-    npx easytyga --list --memory           Marketplace + persistent memory
-    npx easytyga --openclaw                Tunnel local OpenClaw gateway
-    npx easytyga --openclaw 19000          OpenClaw on custom port
+    npx easytyga                                          Tunnel local Ollama
+    npx easytyga --target http://...:8080                 Tunnel any HTTP service
+    npx easytyga --list --memory                          Marketplace + memory
+    npx easytyga --openclaw                               Tunnel OpenClaw gateway
+    npx easytyga --openclaw 19000                         OpenClaw on custom port
+    npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localhost:8000
+    npx easytyga --config tunnels.json                    Multi-tunnel from config
+
+  Config file format (easytyga.config.json):
+    {
+      "server": "wss://easytyga.com/ws",
+      "tunnels": [
+        { "name": "ollama", "target": "http://localhost:11434" },
+        { "name": "vllm", "target": "http://localhost:8000", "list": true }
+      ]
+    }
 
   https://easytyga.com
   `);
   process.exit(0);
 }
 
-const openclawPort = getOptionalArg('openclaw', '18789');
-const openclawMode = openclawPort !== undefined;
-const openclawDefault = openclawMode ? `http://localhost:${openclawPort}` : '';
-const targetUrl = (getArg('target', '') || getArg('ollama', '') || openclawDefault || 'http://localhost:11434').replace(/\/$/, '');
-const serverUrl = getArg('server', 'wss://easytyga.com/ws');
-const key = getArg('key', '') || process.env.EASYTYGA_KEY || '';
-const listMode = hasFlag('list');
-const memoryMode = hasFlag('memory');
-
 // -- Main --
 (async () => {
+  const config = resolveTunnels(args);
+  const multiMode = config.tunnels.length > 1;
+
   console.log('');
-  if (openclawMode) {
-    console.log('  easytyga v1.1.0 + OpenClaw');
-    console.log('  Tunnel your AI assistant gateway to the web');
-  } else {
-    console.log('  easytyga v1.1.0');
-    console.log('  Tunnel your local AI to the web');
-  }
+  console.log(`  easytyga v2.0.0${multiMode ? ` (${config.tunnels.length} tunnels)` : ''}`);
+  console.log('  Tunnel your local AI to the web');
   console.log('');
 
   const gpu = await detectGpu();
   if (gpu) console.log(`  GPU:     ${gpu}`);
-  console.log(`  Target:  ${targetUrl}`);
-  console.log(`  Relay:   ${serverUrl}`);
-  if (openclawMode) console.log('  Service: OpenClaw gateway');
-  if (listMode) console.log('  Mode:    Marketplace');
-  if (memoryMode) console.log('  Memory:  Enabled');
+  console.log(`  Relay:   ${config.server || 'wss://easytyga.com/ws'}`);
+
+  if (multiMode) {
+    console.log('');
+    console.log('  Tunnels:');
+    for (const t of config.tunnels) {
+      const flags = [
+        t.list ? 'list' : '',
+        t.memory ? 'memory' : '',
+        t.openclaw ? 'openclaw' : '',
+      ].filter(Boolean).join(', ');
+      console.log(`    ${t.name} -> ${t.target}${flags ? ` (${flags})` : ''}`);
+    }
+  } else {
+    console.log(`  Target:  ${config.tunnels[0].target}`);
+    if (config.tunnels[0].openclaw) console.log('  Service: OpenClaw gateway');
+    if (config.tunnels[0].list) console.log('  Mode:    Marketplace');
+    if (config.tunnels[0].memory) console.log('  Memory:  Enabled');
+  }
   console.log('');
 
   try {
-    await createTunnel({
-      ollamaUrl: targetUrl,
-      serverUrl,
-      key,
-      listMode,
-      memoryMode,
-      openclawMode,
+    const manager = new TunnelManager({
+      serverUrl: config.server || 'wss://easytyga.com/ws',
       gpu,
     });
+
+    for (const t of config.tunnels) {
+      manager.addTunnel(t);
+    }
+
+    await manager.startAll();
   } catch (err) {
     console.error(`  Error: ${err.message}`);
     process.exit(1);

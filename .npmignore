@@ -3,5 +3,6 @@ src/
 .git/
 .gitignore
 node_modules/
+test/
 tests/
 *.test.js

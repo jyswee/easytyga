@@ -9,7 +9,7 @@ npx easytyga
 ```
 
 ```
-  easytyga v1.1.1
+  easytyga v2.0.0
   Tunnel your local AI to the web
 
   GPU:     NVIDIA GeForce RTX 4090
@@ -29,6 +29,53 @@ npx easytyga
 
 That's it. Your local AI is now accessible from anywhere, secured with an API key.
 
+## What's new in v2
+
+**Multi-tunnel support** - run multiple tunnels in a single process. Expose Ollama, vLLM, OpenClaw, or any mix of services at the same time, each with its own public URL and API key.
+
+```bash
+npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localhost:8000
+```
+
+```
+  easytyga v2.0.0 (2 tunnels)
+  Tunnel your local AI to the web
+
+  GPU:     NVIDIA GeForce RTX 4090
+  Relay:   wss://easytyga.com/ws
+
+  Tunnels:
+    ollama -> http://localhost:11434
+    vllm -> http://localhost:8000
+
+  [ollama] Tunnel active
+  [ollama] Public URL:  https://easytyga.com/t/abc123
+  [ollama] API Key:     et_a1b2c3d4...
+
+  [vllm] Tunnel active
+  [vllm] Public URL:  https://easytyga.com/t/def456
+  [vllm] API Key:     et_e5f6g7h8...
+```
+
+Or use a config file for more control:
+
+```bash
+npx easytyga --config easytyga.config.json
+```
+
+```json
+{
+  "server": "wss://easytyga.com/ws",
+  "tunnels": [
+    { "name": "ollama", "target": "http://localhost:11434" },
+    { "name": "vllm", "target": "http://localhost:8000", "list": true },
+    { "name": "openclaw", "target": "http://localhost:18789", "openclaw": true }
+  ]
+}
+```
+
+Each tunnel gets independent heartbeat, reconnection, and health checks. If one tunnel fails, the others keep running.
+
 ## Why?
 
 Most local AI services have **no built-in authentication** and **no remote access**. If you want to use your GPU from your phone, office, or a cloud app, you need to cobble together nginx + Cloudflare tunnels + basic auth.
@@ -44,6 +91,12 @@ easytyga solves this in one command:
 ```bash
 # Tunnel local Ollama (default port 11434)
 npx easytyga
+
+# Multiple tunnels at once
+npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localhost:8000
+
+# From a config file
+npx easytyga --config easytyga.config.json
 
 # Tunnel your OpenClaw AI assistant gateway
 npx easytyga --openclaw
@@ -63,6 +116,8 @@ npx easytyga --key et_abc123...
 | Flag | Description |
 |------|-------------|
 | `--target <url>` | Local endpoint (default: `http://localhost:11434`) |
+| `--tunnel name=url` | Add a named tunnel (repeatable for multi-tunnel) |
+| `--config <path>` | Load tunnel config from JSON file |
 | `--openclaw [port]` | OpenClaw gateway mode (default port: `18789`) |
 | `--server <url>` | Relay server URL |
 | `--key <key>` | Connection key |
@@ -72,8 +127,8 @@ npx easytyga --key et_abc123...
 
 ## How it works
 
-1. easytyga connects to the relay server via WebSocket
-2. The relay assigns you a public URL with API key auth
+1. easytyga connects to the relay server via WebSocket (one connection per tunnel)
+2. The relay assigns each tunnel a public URL with API key auth
 3. Incoming requests are forwarded through the tunnel to your local service
 4. Responses stream back to the caller
 
@@ -81,7 +136,9 @@ Your IP stays private. No ports to open. Works from any network.
 
 ## Features
 
-- **One command** - `npx easytyga`, no install, no config files
+- **Multi-tunnel** - run multiple services in one process, each with its own URL
+- **Config file support** - define tunnels in `easytyga.config.json`
+- **One command** - `npx easytyga`, no install needed
 - **API key auth** - every tunnel gets a unique key, no anonymous access
 - **GPU detection** - auto-detects NVIDIA, AMD, and Apple Silicon
 - **Model detection** - discovers installed Ollama models automatically
@@ -93,7 +150,7 @@ Your IP stays private. No ports to open. Works from any network.
 
 ## Credits
 
-easytyga is open source and community-funded. The free tier gives you 100 requests/hour. Buy credits to remove the rate limit - credits never expire.
+easytyga is free to use. The free tier gives you 100 requests/hour. Buy credits to remove the rate limit - credits never expire.
 
 - **Starter** - 10,000 requests for $4.99
 - **Popular** - 50,000 requests for $14.99
