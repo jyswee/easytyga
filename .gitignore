@@ -1,3 +1,5 @@
 node_modules
 src/
+scripts/
 easytyga.config.json
+BUGGAZI_*.md

@@ -6,3 +6,9 @@ node_modules/
 test/
 tests/
 *.test.js
+easytyga.config.json
+BUGGAZI_*.md
+*.md
+!README.md
+!LICENSE
+scripts/

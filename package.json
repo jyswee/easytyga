@@ -1,6 +1,6 @@
 {
   "name": "easytyga",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Tunnel your local AI to the internet. Secure. One command. Works with Ollama, OpenClaw, vLLM, and any HTTP service.",
   "bin": {
     "easytyga": "bin/cli.js"
@@ -23,7 +23,7 @@
     "webhook"
   ],
   "scripts": {
-    "build": "javascript-obfuscator src/TunnelClient.js --output dist/TunnelClient.js --compact true --control-flow-flattening true --control-flow-flattening-threshold 0.5 --dead-code-injection true --dead-code-injection-threshold 0.2 --string-array true --string-array-encoding base64 --string-array-threshold 0.8 --rename-globals false --self-defending false --identifier-names-generator hexadecimal --target node && javascript-obfuscator src/TunnelManager.js --output dist/TunnelManager.js --compact true --control-flow-flattening true --control-flow-flattening-threshold 0.5 --dead-code-injection true --dead-code-injection-threshold 0.2 --string-array true --string-array-encoding base64 --string-array-threshold 0.8 --rename-globals false --self-defending false --identifier-names-generator hexadecimal --target node && javascript-obfuscator src/config.js --output dist/config.js --compact true --control-flow-flattening true --control-flow-flattening-threshold 0.5 --dead-code-injection true --dead-code-injection-threshold 0.2 --string-array true --string-array-encoding base64 --string-array-threshold 0.8 --rename-globals false --self-defending false --identifier-names-generator hexadecimal --target node && javascript-obfuscator src/logger.js --output dist/logger.js --compact true --control-flow-flattening true --control-flow-flattening-threshold 0.5 --dead-code-injection true --dead-code-injection-threshold 0.2 --string-array true --string-array-encoding base64 --string-array-threshold 0.8 --rename-globals false --self-defending false --identifier-names-generator hexadecimal --target node && javascript-obfuscator src/detect.js --output dist/detect.js --compact true --control-flow-flattening true --control-flow-flattening-threshold 0.5 --dead-code-injection true --dead-code-injection-threshold 0.2 --string-array true --string-array-encoding base64 --string-array-threshold 0.8 --rename-globals false --self-defending false --identifier-names-generator hexadecimal --target node",
+    "build": "node scripts/build.js",
     "test": "node --test test/unit/*.test.js",
     "test:integration": "node --test test/integration/*.test.js",
     "test:e2e": "node --test test/e2e/*.test.js",
