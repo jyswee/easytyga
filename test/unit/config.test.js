@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { loadConfig, resolveTunnels } = require('../../src/config');
+const { loadConfig, resolveTunnels, resolveConnect, parsePorts } = require('../../src/config');
 
 describe('loadConfig', () => {
   let tmpDir;
@@ -189,5 +189,49 @@ describe('resolveTunnels', () => {
     }));
     const config = resolveTunnels(['--tunnel', 'cli=http://cli'], tmpDir);
     assert.strictEqual(config.tunnels[0].name, 'cli');
+  });
+
+  it('--stream-ports parses into a number allowlist on the tunnel', () => {
+    const config = resolveTunnels(['--stream-ports', '22,2375'], tmpDir);
+    assert.deepStrictEqual(config.tunnels[0].streamPorts, [22, 2375]);
+  });
+
+  it('no --stream-ports means an empty (deny-all) allowlist', () => {
+    const config = resolveTunnels([], tmpDir);
+    assert.deepStrictEqual(config.tunnels[0].streamPorts, []);
+  });
+});
+
+describe('parsePorts', () => {
+  it('parses, trims, de-dupes, and drops invalid ports', () => {
+    assert.deepStrictEqual(parsePorts('22, 2375 ,22,0,70000,abc'), [22, 2375]);
+  });
+  it('returns [] for empty input', () => {
+    assert.deepStrictEqual(parsePorts(''), []);
+  });
+});
+
+describe('resolveConnect', () => {
+  it('parses tunnel name, remote --port and local --local', () => {
+    const cfg = resolveConnect(['connect', 'mypod', '--port', '22', '--local', '2222']);
+    assert.strictEqual(cfg.tunnel, 'mypod');
+    assert.strictEqual(cfg.remotePort, 22);
+    assert.strictEqual(cfg.localPort, 2222);
+  });
+
+  it('--docker defaults the remote port to 2375', () => {
+    const cfg = resolveConnect(['connect', 'mypod', '--docker', '--local', '2375']);
+    assert.strictEqual(cfg.remotePort, 2375);
+  });
+
+  it('defaults the tunnel name to "default" when omitted', () => {
+    const cfg = resolveConnect(['connect', '--port', '22', '--local', '2222']);
+    assert.strictEqual(cfg.tunnel, 'default');
+  });
+
+  it('--key and --server flags propagate', () => {
+    const cfg = resolveConnect(['connect', 'p', '--port', '22', '--local', '2222', '--key', 'et_abc', '--server', 'wss://x/ws']);
+    assert.strictEqual(cfg.key, 'et_abc');
+    assert.strictEqual(cfg.server, 'wss://x/ws');
   });
 });

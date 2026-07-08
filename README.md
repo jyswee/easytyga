@@ -76,6 +76,23 @@ npx easytyga --config easytyga.config.json
 
 Each tunnel gets independent heartbeat, reconnection, and health checks. If one tunnel fails, the others keep running.
 
+## Tunnel any HTTP service (v2.1)
+
+easytyga isn't just for AI. Point it at **any local HTTP service** - a dev server, webhook receiver, dashboard, home automation UI - and get a public, API-key-protected URL in seconds.
+
+```bash
+# Auto-detect: if the target isn't Ollama, it's tunnelled as a plain HTTP service
+npx easytyga --target http://localhost:3000
+
+# Force generic mode explicitly
+npx easytyga --raw --target http://localhost:3000
+
+# Service still starting up? Retry the target check for up to 120s
+npx easytyga --raw --target http://localhost:3000 --wait-target 120
+```
+
+Request headers and content types are passed through untouched, so JSON APIs, HTML pages, form posts, and binary responses all work.
+
 ## Why?
 
 Most local AI services have **no built-in authentication** and **no remote access**. If you want to use your GPU from your phone, office, or a cloud app, you need to cobble together nginx + Cloudflare tunnels + basic auth.
@@ -107,6 +124,12 @@ npx easytyga --openclaw 19000
 # Tunnel a different service
 npx easytyga --target http://localhost:8080
 
+# Tunnel any non-AI HTTP service (generic mode)
+npx easytyga --raw --target http://localhost:3000
+
+# Wait for a slow-starting service before tunnelling
+npx easytyga --wait-target 60
+
 # Use a specific key
 npx easytyga --key et_abc123...
 ```
@@ -119,6 +142,8 @@ npx easytyga --key et_abc123...
 | `--tunnel name=url` | Add a named tunnel (repeatable for multi-tunnel) |
 | `--config <path>` | Load tunnel config from JSON file |
 | `--openclaw [port]` | OpenClaw gateway mode (default port: `18789`) |
+| `--raw` | Generic HTTP mode - tunnel any local service |
+| `--wait-target <sec>` | Retry the target check for up to `<sec>` seconds at startup |
 | `--server <url>` | Relay server URL |
 | `--key <key>` | Connection key |
 | `--list` | Register on the GPU marketplace |
@@ -146,7 +171,8 @@ Your IP stays private. No ports to open. Works from any network.
 - **Auto-reconnect** - exponential backoff, set and forget
 - **Client-side heartbeat** - detects dead connections within 30s, auto-reconnects when relay restarts
 - **Streaming** - full support for streaming responses (chat, generate)
-- **Any HTTP service** - not locked to Ollama, tunnel anything
+- **Any HTTP service** - not locked to Ollama; `--raw` tunnels anything with full header passthrough
+- **Wait for target** - `--wait-target` retries at startup instead of failing while your service boots
 
 ## Credits
 

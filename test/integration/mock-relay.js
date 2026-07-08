@@ -13,8 +13,12 @@ class MockRelay {
     this.connections = [];
     this.authMessages = [];
     this.responses = new Map(); // id -> collected response parts
+    this.streamFrames = new Map(); // id -> collected stream frames
     this.wss = null;
     this._onAuth = opts.onAuth || null;
+    // When true, the relay plays the far-side agent for renter (StreamClient)
+    // tests: it answers stream-open with stream-ready and echoes stream-data.
+    this.echoStreams = opts.echoStreams || false;
   }
 
   async start() {
@@ -66,6 +70,25 @@ class MockRelay {
             }
             this.responses.get(msg.id).push(msg);
           }
+
+          // Collect raw-stream frames (agent -> relay)
+          if (msg.type === 'stream-ready' || msg.type === 'stream-data' || msg.type === 'stream-close' || msg.type === 'stream-error') {
+            if (!this.streamFrames.has(msg.id)) {
+              this.streamFrames.set(msg.id, []);
+            }
+            this.streamFrames.get(msg.id).push(msg);
+          }
+
+          // Renter-side echo: act as the far agent for StreamClient tests.
+          if (this.echoStreams) {
+            if (msg.type === 'stream-open') {
+              ws.send(JSON.stringify({ id: msg.id, type: 'stream-ready' }));
+            } else if (msg.type === 'stream-data') {
+              ws.send(JSON.stringify({ id: msg.id, type: 'stream-data', chunk: msg.chunk }));
+            } else if (msg.type === 'stream-close') {
+              ws.send(JSON.stringify({ id: msg.id, type: 'stream-close' }));
+            }
+          }
         });
       });
     });
@@ -83,6 +106,31 @@ class MockRelay {
       body: request.body ? Buffer.from(JSON.stringify(request.body)).toString('base64') : '',
     }));
     return id;
+  }
+
+  // -- Raw-stream helpers (relay -> agent) --
+
+  sendStreamFrame(connIdx, obj) {
+    const conn = this.connections[connIdx];
+    if (!conn) throw new Error(`No connection at index ${connIdx}`);
+    conn.ws.send(JSON.stringify(obj));
+  }
+
+  streamFramesFor(id) {
+    return this.streamFrames.get(id) || [];
+  }
+
+  waitForStreamFrame(id, type, timeout = 5000) {
+    return new Promise((resolve, reject) => {
+      const start = Date.now();
+      const check = () => {
+        const frame = this.streamFramesFor(id).find(f => f.type === type);
+        if (frame) return resolve(frame);
+        if (Date.now() - start > timeout) return reject(new Error(`Timeout waiting for stream ${type} on ${id}`));
+        setTimeout(check, 25);
+      };
+      check();
+    });
   }
 
   waitForResponse(id, timeout = 5000) {
