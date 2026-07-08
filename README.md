@@ -9,7 +9,7 @@ npx easytyga
 ```
 
 ```
-  easytyga v2.4.0
+  easytyga v2.4.1
   Tunnel your local AI to the web
 
   GPU:     NVIDIA GeForce RTX 4090
@@ -38,7 +38,7 @@ npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localho
 ```
 
 ```
-  easytyga v2.4.0 (2 tunnels)
+  easytyga v2.4.1 (2 tunnels)
   Tunnel your local AI to the web
 
   GPU:     NVIDIA GeForce RTX 4090
