@@ -9,7 +9,7 @@ npx easytyga
 ```
 
 ```
-  easytyga v2.0.0
+  easytyga v2.3.0
   Tunnel your local AI to the web
 
   GPU:     NVIDIA GeForce RTX 4090
@@ -38,7 +38,7 @@ npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localho
 ```
 
 ```
-  easytyga v2.0.0 (2 tunnels)
+  easytyga v2.3.0 (2 tunnels)
   Tunnel your local AI to the web
 
   GPU:     NVIDIA GeForce RTX 4090
@@ -93,6 +93,35 @@ npx easytyga --raw --target http://localhost:3000 --wait-target 120
 
 Request headers and content types are passed through untouched, so JSON APIs, HTML pages, form posts, and binary responses all work.
 
+## SSH and Docker over your tunnel (v2.3)
+
+Beyond HTTP, easytyga can now tunnel **raw TCP** - so you can SSH into a remote box or reach its Docker socket over the same secured tunnel. This is ideal for GPU pods: expose port 22 and manage the machine from anywhere, no public IP required.
+
+There are two sides.
+
+**On the remote machine (the pod)**, list the local ports you want to allow. This is an explicit allowlist - nothing is reachable unless you name it here:
+
+```bash
+# Allow SSH (22) and the Docker daemon (2375)
+npx easytyga --stream-ports 22,2375
+```
+
+**On your machine (the renter)**, open a local port that forwards to the pod:
+
+```bash
+# Forward local 2222 -> pod's port 22, then SSH in
+npx easytyga connect mypod --port 22 --local 2222
+ssh user@localhost -p 2222
+```
+
+```bash
+# Reach the pod's Docker daemon on a local port
+npx easytyga connect mypod --docker --local 2375
+DOCKER_HOST=tcp://localhost:2375 docker ps
+```
+
+`mypod` is the tunnel name (the same key the pod connected with). Ports are default-deny end to end: the connection is refused unless the port is in the pod's `--stream-ports` allowlist, and the relay enforces the same allowlist independently.
+
 ## Why?
 
 Most local AI services have **no built-in authentication** and **no remote access**. If you want to use your GPU from your phone, office, or a cloud app, you need to cobble together nginx + Cloudflare tunnels + basic auth.
@@ -132,6 +161,12 @@ npx easytyga --wait-target 60
 
 # Use a specific key
 npx easytyga --key et_abc123...
+
+# Expose raw TCP ports (SSH, Docker) on the remote machine
+npx easytyga --stream-ports 22,2375
+
+# Reach a remote pod's port from your machine
+npx easytyga connect mypod --port 22 --local 2222
 ```
 
 ## Options
@@ -144,11 +179,25 @@ npx easytyga --key et_abc123...
 | `--openclaw [port]` | OpenClaw gateway mode (default port: `18789`) |
 | `--raw` | Generic HTTP mode - tunnel any local service |
 | `--wait-target <sec>` | Retry the target check for up to `<sec>` seconds at startup |
+| `--eager` | Register the tunnel immediately, probe the target lazily |
+| `--stream-ports <list>` | Allow raw-TCP streams to these local ports (e.g. `22,2375`) |
 | `--server <url>` | Relay server URL |
 | `--key <key>` | Connection key |
 | `--list` | Register on the GPU marketplace |
 | `--memory` | Enable persistent conversation memory |
 | `--help` | Show help |
+
+### `connect` subcommand
+
+Reach a remote pod's raw-TCP port from your machine: `npx easytyga connect <tunnel> [options]`
+
+| Flag | Description |
+|------|-------------|
+| `--port <n>` | Remote port on the pod to reach (e.g. `22`) |
+| `--local <n>` | Local port to listen on (e.g. `2222`) |
+| `--docker` | Shortcut for the Docker daemon port (`2375`) |
+| `--bind <host>` | Local interface to bind (default: `127.0.0.1`) |
+| `--key <key>` | Tunnel key |
 
 ## How it works
 
@@ -172,6 +221,7 @@ Your IP stays private. No ports to open. Works from any network.
 - **Client-side heartbeat** - detects dead connections within 30s, auto-reconnects when relay restarts
 - **Streaming** - full support for streaming responses (chat, generate)
 - **Any HTTP service** - not locked to Ollama; `--raw` tunnels anything with full header passthrough
+- **Raw TCP (SSH / Docker)** - `--stream-ports` exposes local ports over the tunnel; `connect` forwards them to your machine, default-deny by allowlist
 - **Wait for target** - `--wait-target` retries at startup instead of failing while your service boots
 
 ## Credits
