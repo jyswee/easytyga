@@ -53,9 +53,9 @@ describe('TunnelClient - raw-TCP streams (pod agent)', () => {
     relay.sendStreamFrame(0, { id, type: 'stream-open', port: echo.port });
     await relay.waitForStreamFrame(id, 'stream-ready');
 
-    relay.sendStreamFrame(0, { id, type: 'stream-data', chunk: Buffer.from('ping').toString('base64') });
+    relay.sendStreamData(0, id, 'ping');
     const dataFrame = await relay.waitForStreamFrame(id, 'stream-data');
-    assert.strictEqual(Buffer.from(dataFrame.chunk, 'base64').toString(), 'ping');
+    assert.strictEqual(dataFrame.payload.toString(), 'ping');
 
     client.stop();
   });

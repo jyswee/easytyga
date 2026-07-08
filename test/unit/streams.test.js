@@ -1,7 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const { EventEmitter } = require('node:events');
-const { StreamMux, HIGH_WATER } = require('../../src/streams');
+const { StreamMux, HIGH_WATER, decodeStreamData } = require('../../src/streams');
 
 // Deterministic stand-ins so we can drive the exact code paths (backpressure,
 // byte cap, idle timeout) without real sockets or a real relay.
@@ -24,15 +24,21 @@ class FakeWs {
   constructor() {
     this.readyState = 1; // OPEN
     this.bufferedAmount = 0;
-    this.sent = [];
+    this.sent = [];        // JSON control frames (text)
+    this.dataFrames = [];  // binary stream-data buffers
   }
-  send(str, cb) { this.sent.push(JSON.parse(str)); if (cb) cb(); }
+  send(data, cb) {
+    if (Buffer.isBuffer(data)) this.dataFrames.push(data);
+    else this.sent.push(JSON.parse(data));
+    if (cb) cb();
+  }
 }
 
 const framesFor = (ws, id, type) => ws.sent.filter(f => f.id === id && f.type === type);
+const dataFor = (ws, id) => ws.dataFrames.map(decodeStreamData).filter(f => f && f.id === id);
 
 describe('StreamMux', () => {
-  it('forwards socket data as a base64 stream-data frame', () => {
+  it('forwards socket data as a binary stream-data frame', () => {
     const ws = new FakeWs();
     const mux = new StreamMux(ws);
     const sock = new MockSocket();
@@ -40,18 +46,18 @@ describe('StreamMux', () => {
 
     sock.emit('data', Buffer.from('hello'));
 
-    const [frame] = framesFor(ws, 's1', 'stream-data');
-    assert.ok(frame, 'should emit a stream-data frame');
-    assert.strictEqual(Buffer.from(frame.chunk, 'base64').toString(), 'hello');
+    const [frame] = dataFor(ws, 's1');
+    assert.ok(frame, 'should emit a binary stream-data frame');
+    assert.strictEqual(frame.payload.toString(), 'hello');
   });
 
-  it('writes inbound peer data to the local socket (decoded)', () => {
+  it('writes inbound peer binary data to the local socket (raw)', () => {
     const ws = new FakeWs();
     const mux = new StreamMux(ws);
     const sock = new MockSocket();
     mux.register('s1', sock);
 
-    mux.write('s1', Buffer.from('pong').toString('base64'));
+    mux.writeBinary('s1', Buffer.from('pong'));
     assert.strictEqual(Buffer.concat(sock.written).toString(), 'pong');
   });
 
@@ -104,7 +110,7 @@ describe('StreamMux', () => {
     mux.register('s1', sock);
 
     sock.emit('data', Buffer.from('x'));
-    assert.strictEqual(framesFor(ws, 's1', 'stream-data').length, 0);
+    assert.strictEqual(dataFor(ws, 's1').length, 0);
     assert.strictEqual(mux.has('s1'), false);
   });
 
@@ -129,7 +135,7 @@ describe('StreamMux', () => {
 
     // Keep it busy before the window elapses.
     await new Promise(r => setTimeout(r, 25));
-    mux.write('s1', Buffer.from('ka').toString('base64'));
+    mux.writeBinary('s1', Buffer.from('ka'));
     await new Promise(r => setTimeout(r, 25));
     assert.strictEqual(framesFor(ws, 's1', 'stream-error').length, 0);
     assert.strictEqual(mux.has('s1'), true);
@@ -193,6 +199,6 @@ describe('StreamMux', () => {
   it('ignores writes to unknown stream ids', () => {
     const ws = new FakeWs();
     const mux = new StreamMux(ws);
-    assert.doesNotThrow(() => mux.write('nope', Buffer.from('x').toString('base64')));
+    assert.doesNotThrow(() => mux.writeBinary('nope', Buffer.from('x')));
   });
 });

@@ -5,6 +5,7 @@
 
 const { WebSocketServer } = require('ws');
 const crypto = require('crypto');
+const { encodeStreamData, decodeStreamData } = require('../../src/streams');
 
 class MockRelay {
   constructor(opts = {}) {
@@ -33,7 +34,20 @@ class MockRelay {
         const idx = connIndex++;
         this.connections.push({ ws, idx, authed: false });
 
-        ws.on('message', (data) => {
+        ws.on('message', (data, isBinary) => {
+          // Binary frame = raw stream-data (agent -> relay). Record it as a
+          // stream-data frame (with decoded payload) and, in echo mode, bounce
+          // the exact binary frame back.
+          if (isBinary) {
+            const frame = decodeStreamData(data);
+            if (frame) {
+              if (!this.streamFrames.has(frame.id)) this.streamFrames.set(frame.id, []);
+              this.streamFrames.get(frame.id).push({ id: frame.id, type: 'stream-data', payload: frame.payload });
+              if (this.echoStreams) ws.send(encodeStreamData(frame.id, frame.payload));
+            }
+            return;
+          }
+
           let msg;
           try { msg = JSON.parse(data); } catch { return; }
 
@@ -71,8 +85,8 @@ class MockRelay {
             this.responses.get(msg.id).push(msg);
           }
 
-          // Collect raw-stream frames (agent -> relay)
-          if (msg.type === 'stream-ready' || msg.type === 'stream-data' || msg.type === 'stream-close' || msg.type === 'stream-error') {
+          // Collect raw-stream control frames (agent -> relay)
+          if (msg.type === 'stream-ready' || msg.type === 'stream-close' || msg.type === 'stream-error') {
             if (!this.streamFrames.has(msg.id)) {
               this.streamFrames.set(msg.id, []);
             }
@@ -83,8 +97,6 @@ class MockRelay {
           if (this.echoStreams) {
             if (msg.type === 'stream-open') {
               ws.send(JSON.stringify({ id: msg.id, type: 'stream-ready' }));
-            } else if (msg.type === 'stream-data') {
-              ws.send(JSON.stringify({ id: msg.id, type: 'stream-data', chunk: msg.chunk }));
             } else if (msg.type === 'stream-close') {
               ws.send(JSON.stringify({ id: msg.id, type: 'stream-close' }));
             }
@@ -114,6 +126,14 @@ class MockRelay {
     const conn = this.connections[connIdx];
     if (!conn) throw new Error(`No connection at index ${connIdx}`);
     conn.ws.send(JSON.stringify(obj));
+  }
+
+  // Send a binary stream-data frame (relay -> agent) using the shared codec.
+  sendStreamData(connIdx, id, payload) {
+    const conn = this.connections[connIdx];
+    if (!conn) throw new Error(`No connection at index ${connIdx}`);
+    const buf = Buffer.isBuffer(payload) ? payload : Buffer.from(payload);
+    conn.ws.send(encodeStreamData(id, buf));
   }
 
   streamFramesFor(id) {
