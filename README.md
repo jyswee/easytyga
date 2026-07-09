@@ -9,7 +9,7 @@ npx easytyga
 ```
 
 ```
-  easytyga v2.4.1
+  easytyga v3.0.0
   Tunnel your local AI to the web
 
   GPU:     NVIDIA GeForce RTX 4090
@@ -29,6 +29,21 @@ npx easytyga
 
 That's it. Your local AI is now accessible from anywhere, secured with an API key.
 
+## What's new in v3
+
+**Rent the whole box.** easytyga v3 turns a tunnel into full remote access to your GPU pod. Beyond HTTP, you can now reach **raw TCP** ports - SSH into the machine, drive its Docker daemon, open Jupyter or TensorBoard, sync files, or hit a database - all over the same secured, API-key-authenticated tunnel, with no public IP.
+
+Everything is default-deny: a port is only reachable if the pod explicitly allowed it, and the relay enforces the same allowlist independently. New **service presets** (`--jupyter`, `--tensorboard`, `--db`, `--rsync`/`--scp`) make the common workflows a single flag.
+
+```bash
+# On the pod: allow SSH, Docker, and Jupyter
+npx easytyga --stream-ports 22,2375 --jupyter
+
+# On your machine: SSH in, or open Jupyter locally
+npx easytyga connect mypod --port 22 --local 2222
+npx easytyga connect mypod --jupyter --local 8888
+```
+
 ## What's new in v2
 
 **Multi-tunnel support** - run multiple tunnels in a single process. Expose Ollama, vLLM, OpenClaw, or any mix of services at the same time, each with its own public URL and API key.
@@ -38,7 +53,7 @@ npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localho
 ```
 
 ```
-  easytyga v2.4.1 (2 tunnels)
+  easytyga v3.0.0 (2 tunnels)
   Tunnel your local AI to the web
 
   GPU:     NVIDIA GeForce RTX 4090
@@ -122,6 +137,39 @@ DOCKER_HOST=tcp://localhost:2375 docker ps
 
 `mypod` is the tunnel name (the same key the pod connected with). Ports are default-deny end to end: the connection is refused unless the port is in the pod's `--stream-ports` allowlist, and the relay enforces the same allowlist independently.
 
+## Service presets (v3)
+
+Common workflows get a single flag instead of a port number to remember. Presets are shorthand for `--stream-ports` on the pod and `connect --port` on your machine - the same default-deny allowlist, just less typing.
+
+On the pod, expose services by name:
+
+```bash
+# Jupyter (8888), TensorBoard (6006), and Postgres (5432) in one line
+npx easytyga --jupyter --tensorboard --db 5432
+```
+
+From your machine, reach one by name and get the exact command printed back for you:
+
+```bash
+npx easytyga connect mypod --jupyter --local 8888
+#   Connect with:  open http://localhost:8888
+
+npx easytyga connect mypod --db 5432 --local 5432
+
+npx easytyga connect mypod --rsync --local 2222
+#   Connect with:  rsync -e 'ssh -p 2222' <user>@localhost:/remote/path ./
+```
+
+| Preset | Port | Rides on |
+|--------|------|----------|
+| `--jupyter [port]` | 8888 | its own stream |
+| `--tensorboard [port]` | 6006 | its own stream |
+| `--docker` | 2375 | its own stream |
+| `--db <port>` | your choice | its own stream |
+| `--rsync` / `--scp` | 22 | the SSH stream |
+
+A preset never widens access. It just adds its port to the same allowlist and entitlement checks as `--stream-ports`, so nothing is reachable unless the pod named it. An explicit `--port` always overrides the preset.
+
 ## Why?
 
 Most local AI services have **no built-in authentication** and **no remote access**. If you want to use your GPU from your phone, office, or a cloud app, you need to cobble together nginx + Cloudflare tunnels + basic auth.
@@ -131,6 +179,28 @@ easytyga solves this in one command:
 - **API key auth** - auto-generated, every request authenticated
 - **Auto-detects your GPU** - knows what hardware you're running
 - **Works with anything** - Ollama, OpenClaw, vLLM, LocalAI, ComfyUI, or any HTTP service
+
+## easytyga vs ngrok
+
+ngrok is a great general-purpose tunnel. easytyga is built specifically for self-hosted AI and GPU boxes. With v3 the tunnel is no longer just an HTTP endpoint - it is full, authenticated access to the whole machine (SSH, Docker, Jupyter, databases), so a lot works differently out of the box.
+
+| | easytyga | ngrok (Free) |
+|---|---|---|
+| API key auth on every endpoint | Yes, auto-generated, always on | HTTP/HTTPS only (not TCP); auth is opt-in |
+| Raw TCP (SSH / Docker) | Yes, default-deny allowlist, no card | Requires credit-card verification |
+| Service presets (Jupyter, TensorBoard, DB) | One-flag shortcuts built in | Manual port config |
+| Rent the whole box | SSH + Docker + notebooks in one tunnel | Per-endpoint agents, paid TCP |
+| Session length | Unlimited | 2 hour cap |
+| Interstitial warning page | None | Shown to all visitors |
+| GPU + model detection | Built in (NVIDIA, AMD, Apple Silicon) | No |
+| Multi-tunnel in one process | Yes, one WebSocket per tunnel | One agent per endpoint |
+| AI-native modes | `--openclaw`, Ollama/vLLM auto-detect | Generic HTTP only |
+| Pricing model | Credits, one-time, never expire | Monthly subscription |
+| Free tier limit | 100 requests/hour | 1GB/mo, 20k requests/mo |
+
+Numbers reflect ngrok's published Free plan as of 2026. See [ngrok.com/pricing](https://ngrok.com/pricing) for their current terms.
+
+If you need a mature API gateway with global edge, load balancing, and Kubernetes ingress, use ngrok. If you want your whole GPU box online in one command - HTTP, SSH, Docker, and notebooks, all authenticated, with no time limits - use easytyga.
 
 ## Usage
 
@@ -181,6 +251,9 @@ npx easytyga connect mypod --port 22 --local 2222
 | `--wait-target <sec>` | Retry the target check for up to `<sec>` seconds at startup |
 | `--eager` | Register the tunnel immediately, probe the target lazily |
 | `--stream-ports <list>` | Allow raw-TCP streams to these local ports (e.g. `22,2375`) |
+| `--jupyter [port]` | Preset: expose Jupyter (default port `8888`) |
+| `--tensorboard [port]` | Preset: expose TensorBoard (default port `6006`) |
+| `--db <port>` | Preset: expose a database port (e.g. `5432`) |
 | `--server <url>` | Relay server URL |
 | `--key <key>` | Connection key |
 | `--list` | Register on the GPU marketplace |
@@ -195,7 +268,11 @@ Reach a remote pod's raw-TCP port from your machine: `npx easytyga connect <tunn
 |------|-------------|
 | `--port <n>` | Remote port on the pod to reach (e.g. `22`) |
 | `--local <n>` | Local port to listen on (e.g. `2222`) |
-| `--docker` | Shortcut for the Docker daemon port (`2375`) |
+| `--docker` | Preset for the Docker daemon port (`2375`) |
+| `--jupyter [port]` | Preset for Jupyter (default `8888`) |
+| `--tensorboard [port]` | Preset for TensorBoard (default `6006`) |
+| `--db <port>` | Preset for a database port (e.g. `5432`) |
+| `--rsync` / `--scp` | Preset for file transfer over the SSH stream (`22`) |
 | `--bind <host>` | Local interface to bind (default: `127.0.0.1`) |
 | `--key <key>` | Tunnel key |
 
@@ -222,6 +299,7 @@ Your IP stays private. No ports to open. Works from any network.
 - **Streaming** - full support for streaming responses (chat, generate)
 - **Any HTTP service** - not locked to Ollama; `--raw` tunnels anything with full header passthrough
 - **Raw TCP (SSH / Docker)** - `--stream-ports` exposes local ports over the tunnel; `connect` forwards them to your machine, default-deny by allowlist
+- **Service presets** - `--jupyter`, `--tensorboard`, `--db`, `--rsync`/`--scp` are one-flag shortcuts over raw TCP, still default-deny
 - **Wait for target** - `--wait-target` retries at startup instead of failing while your service boots
 
 ## Credits

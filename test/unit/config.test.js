@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { loadConfig, resolveTunnels, resolveConnect, parsePorts } = require('../../src/config');
+const { loadConfig, resolveTunnels, resolveConnect, parsePorts, resolvePreset, presetStreamPorts } = require('../../src/config');
 
 describe('loadConfig', () => {
   let tmpDir;
@@ -200,6 +200,31 @@ describe('resolveTunnels', () => {
     const config = resolveTunnels([], tmpDir);
     assert.deepStrictEqual(config.tunnels[0].streamPorts, []);
   });
+
+  it('--jupyter preset expands into the streamPorts allowlist (default 8888)', () => {
+    const config = resolveTunnels(['--jupyter'], tmpDir);
+    assert.deepStrictEqual(config.tunnels[0].streamPorts, [8888]);
+  });
+
+  it('--jupyter accepts a custom port', () => {
+    const config = resolveTunnels(['--jupyter', '9999'], tmpDir);
+    assert.deepStrictEqual(config.tunnels[0].streamPorts, [9999]);
+  });
+
+  it('--tensorboard preset expands to 6006', () => {
+    const config = resolveTunnels(['--tensorboard'], tmpDir);
+    assert.deepStrictEqual(config.tunnels[0].streamPorts, [6006]);
+  });
+
+  it('--db <port> preset expands to the given port', () => {
+    const config = resolveTunnels(['--db', '5432'], tmpDir);
+    assert.deepStrictEqual(config.tunnels[0].streamPorts, [5432]);
+  });
+
+  it('presets merge with --stream-ports and de-dupe', () => {
+    const config = resolveTunnels(['--stream-ports', '22,8888', '--jupyter', '--tensorboard'], tmpDir);
+    assert.deepStrictEqual(config.tunnels[0].streamPorts, [22, 8888, 6006]);
+  });
 });
 
 describe('parsePorts', () => {
@@ -233,5 +258,68 @@ describe('resolveConnect', () => {
     const cfg = resolveConnect(['connect', 'p', '--port', '22', '--local', '2222', '--key', 'et_abc', '--server', 'wss://x/ws']);
     assert.strictEqual(cfg.key, 'et_abc');
     assert.strictEqual(cfg.server, 'wss://x/ws');
+  });
+
+  it('--jupyter preset pre-fills the remote port to 8888', () => {
+    const cfg = resolveConnect(['connect', 'mypod', '--jupyter', '--local', '8888']);
+    assert.strictEqual(cfg.remotePort, 8888);
+    assert.strictEqual(cfg.preset, 'jupyter');
+  });
+
+  it('--tensorboard preset pre-fills the remote port to 6006', () => {
+    const cfg = resolveConnect(['connect', 'mypod', '--tensorboard', '--local', '6006']);
+    assert.strictEqual(cfg.remotePort, 6006);
+    assert.strictEqual(cfg.preset, 'tensorboard');
+  });
+
+  it('--db <port> preset pre-fills the remote port', () => {
+    const cfg = resolveConnect(['connect', 'mypod', '--db', '5432', '--local', '5432']);
+    assert.strictEqual(cfg.remotePort, 5432);
+    assert.strictEqual(cfg.preset, 'db');
+  });
+
+  it('--rsync and --scp presets ride the SSH port (22)', () => {
+    const rsync = resolveConnect(['connect', 'mypod', '--rsync', '--local', '2222']);
+    assert.strictEqual(rsync.remotePort, 22);
+    assert.strictEqual(rsync.preset, 'rsync');
+    const scp = resolveConnect(['connect', 'mypod', '--scp', '--local', '2222']);
+    assert.strictEqual(scp.remotePort, 22);
+    assert.strictEqual(scp.preset, 'scp');
+  });
+
+  it('explicit --port overrides a preset', () => {
+    const cfg = resolveConnect(['connect', 'mypod', '--jupyter', '--port', '9000', '--local', '9000']);
+    assert.strictEqual(cfg.remotePort, 9000);
+  });
+
+  it('no preset leaves preset null', () => {
+    const cfg = resolveConnect(['connect', 'mypod', '--port', '22', '--local', '2222']);
+    assert.strictEqual(cfg.preset, null);
+  });
+});
+
+describe('resolvePreset / presetStreamPorts', () => {
+  it('resolvePreset returns the first matching preset only', () => {
+    const p = resolvePreset(['--jupyter', '--tensorboard']);
+    assert.deepStrictEqual(p, { name: 'jupyter', port: 8888 });
+  });
+
+  it('resolvePreset returns null when no preset flag is present', () => {
+    assert.strictEqual(resolvePreset(['--port', '22']), null);
+  });
+
+  it('resolvePreset ignores --db with no value', () => {
+    assert.strictEqual(resolvePreset(['--db']), null);
+  });
+
+  it('presetStreamPorts collects every preset port on the pod side', () => {
+    assert.deepStrictEqual(
+      presetStreamPorts(['--jupyter', '--tensorboard', '--db', '5432']),
+      [8888, 6006, 5432]
+    );
+  });
+
+  it('presetStreamPorts drops out-of-range ports', () => {
+    assert.deepStrictEqual(presetStreamPorts(['--db', '70000']), []);
   });
 });
