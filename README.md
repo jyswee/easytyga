@@ -14,7 +14,6 @@ npx easytyga
 
   GPU:     NVIDIA GeForce RTX 4090
   Target:  http://localhost:11434
-  Relay:   wss://relay.easytyga.com/ws
 
   Tunnel active
 
@@ -29,11 +28,11 @@ npx easytyga
 
 That's it. Your local AI is now accessible from anywhere, secured with an API key.
 
-## What's new in v3
+## Rent the whole box
 
-**Rent the whole box.** easytyga v3 turns a tunnel into full remote access to your GPU pod. Beyond HTTP, you can now reach **raw TCP** ports - SSH into the machine, drive its Docker daemon, open Jupyter or TensorBoard, sync files, or hit a database - all over the same secured, API-key-authenticated tunnel, with no public IP.
+easytyga turns a tunnel into full remote access to your GPU pod. Beyond HTTP, you can reach **raw TCP** ports - SSH into the machine, drive its Docker daemon, open Jupyter or TensorBoard, sync files, or hit a database - all over the same secured, API-key-authenticated tunnel, with no public IP.
 
-Everything is default-deny: a port is only reachable if the pod explicitly allowed it, and the relay enforces the same allowlist independently. New **service presets** (`--jupyter`, `--tensorboard`, `--db`, `--rsync`/`--scp`) make the common workflows a single flag.
+Everything is default-deny: a port is only reachable if the pod explicitly allowed it, and the relay enforces the same allowlist independently.
 
 ```bash
 # On the pod: allow SSH, Docker, and Jupyter
@@ -44,9 +43,9 @@ npx easytyga connect mypod --port 22 --local 2222
 npx easytyga connect mypod --jupyter --local 8888
 ```
 
-## What's new in v2
+## Multi-tunnel
 
-**Multi-tunnel support** - run multiple tunnels in a single process. Expose Ollama, vLLM, OpenClaw, or any mix of services at the same time, each with its own public URL and API key.
+Run multiple tunnels in a single process. Expose Ollama, vLLM, OpenClaw, or any mix of services at the same time, each with its own public URL and API key.
 
 ```bash
 npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localhost:8000
@@ -57,7 +56,6 @@ npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localho
   Tunnel your local AI to the web
 
   GPU:     NVIDIA GeForce RTX 4090
-  Relay:   wss://relay.easytyga.com/ws
 
   Tunnels:
     ollama -> http://localhost:11434
@@ -80,7 +78,6 @@ npx easytyga --config easytyga.config.json
 
 ```json
 {
-  "server": "wss://relay.easytyga.com/ws",
   "tunnels": [
     { "name": "ollama", "target": "http://localhost:11434" },
     { "name": "vllm", "target": "http://localhost:8000", "list": true },
@@ -91,7 +88,7 @@ npx easytyga --config easytyga.config.json
 
 Each tunnel gets independent heartbeat, reconnection, and health checks. If one tunnel fails, the others keep running.
 
-## Tunnel any HTTP service (v2.1)
+## Tunnel any HTTP service
 
 easytyga isn't just for AI. Point it at **any local HTTP service** - a dev server, webhook receiver, dashboard, home automation UI - and get a public, API-key-protected URL in seconds.
 
@@ -108,9 +105,9 @@ npx easytyga --raw --target http://localhost:3000 --wait-target 120
 
 Request headers and content types are passed through untouched, so JSON APIs, HTML pages, form posts, and binary responses all work.
 
-## SSH and Docker over your tunnel (v2.3)
+## SSH, Docker, and databases over your tunnel
 
-Beyond HTTP, easytyga can now tunnel **raw TCP** - so you can SSH into a remote box or reach its Docker socket over the same secured tunnel. This is ideal for GPU pods: expose port 22 and manage the machine from anywhere, no public IP required.
+Beyond HTTP, easytyga tunnels **raw TCP** - so you can SSH into a remote box or reach its Docker socket over the same secured tunnel. This is ideal for GPU pods: expose port 22 and manage the machine from anywhere, no public IP required.
 
 There are two sides.
 
@@ -137,7 +134,7 @@ DOCKER_HOST=tcp://localhost:2375 docker ps
 
 `mypod` is the tunnel name (the same key the pod connected with). Ports are default-deny end to end: the connection is refused unless the port is in the pod's `--stream-ports` allowlist, and the relay enforces the same allowlist independently.
 
-## Service presets (v3)
+## Service presets
 
 Common workflows get a single flag instead of a port number to remember. Presets are shorthand for `--stream-ports` on the pod and `connect --port` on your machine - the same default-deny allowlist, just less typing.
 
@@ -182,7 +179,7 @@ easytyga solves this in one command:
 
 ## easytyga vs ngrok
 
-ngrok is a great general-purpose tunnel. easytyga is built specifically for self-hosted AI and GPU boxes. With v3 the tunnel is no longer just an HTTP endpoint - it is full, authenticated access to the whole machine (SSH, Docker, Jupyter, databases), so a lot works differently out of the box.
+ngrok is a great general-purpose tunnel. easytyga is built specifically for self-hosted AI and GPU boxes. The tunnel is full, authenticated access to the whole machine (SSH, Docker, Jupyter, databases), so a lot works differently out of the box.
 
 | | easytyga | ngrok (Free) |
 |---|---|---|
