@@ -14,7 +14,7 @@ npx easytyga
 
   GPU:     NVIDIA GeForce RTX 4090
   Target:  http://localhost:11434
-  Relay:   wss://easytyga.com/ws
+  Relay:   wss://relay.easytyga.com/ws
 
   Tunnel active
 
@@ -57,7 +57,7 @@ npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localho
   Tunnel your local AI to the web
 
   GPU:     NVIDIA GeForce RTX 4090
-  Relay:   wss://easytyga.com/ws
+  Relay:   wss://relay.easytyga.com/ws
 
   Tunnels:
     ollama -> http://localhost:11434
@@ -80,7 +80,7 @@ npx easytyga --config easytyga.config.json
 
 ```json
 {
-  "server": "wss://easytyga.com/ws",
+  "server": "wss://relay.easytyga.com/ws",
   "tunnels": [
     { "name": "ollama", "target": "http://localhost:11434" },
     { "name": "vllm", "target": "http://localhost:8000", "list": true },
@@ -187,7 +187,7 @@ ngrok is a great general-purpose tunnel. easytyga is built specifically for self
 | | easytyga | ngrok (Free) |
 |---|---|---|
 | API key auth on every endpoint | Yes, auto-generated, always on | HTTP/HTTPS only (not TCP); auth is opt-in |
-| Raw TCP (SSH / Docker) | Yes, default-deny allowlist, no card | Requires credit-card verification |
+| Raw TCP (SSH / Docker) | Yes, included, default-deny allowlist | Requires credit-card verification |
 | Service presets (Jupyter, TensorBoard, DB) | One-flag shortcuts built in | Manual port config |
 | Rent the whole box | SSH + Docker + notebooks in one tunnel | Per-endpoint agents, paid TCP |
 | Session length | Unlimited | 2 hour cap |
@@ -196,7 +196,7 @@ ngrok is a great general-purpose tunnel. easytyga is built specifically for self
 | Multi-tunnel in one process | Yes, one WebSocket per tunnel | One agent per endpoint |
 | AI-native modes | `--openclaw`, Ollama/vLLM auto-detect | Generic HTTP only |
 | Pricing model | Credits, one-time, never expire | Monthly subscription |
-| Free tier limit | 100 requests/hour | 1GB/mo, 20k requests/mo |
+| Entry cost | $1 one-time activation (500 requests) | Free tier, then monthly plans |
 
 Numbers reflect ngrok's published Free plan as of 2026. See [ngrok.com/pricing](https://ngrok.com/pricing) for their current terms.
 
@@ -304,7 +304,7 @@ Your IP stays private. No ports to open. Works from any network.
 
 ## Credits
 
-easytyga is free to use. The free tier gives you 100 requests/hour. Buy credits to remove the rate limit - credits never expire.
+A one-time $1 activates your tunnel key and includes 500 requests. It is a spam-buster to keep the shared relay clean, not a profit centre. Beyond that, credit packs remove the rate limit and never expire.
 
 - **Starter** - 10,000 requests for $4.99
 - **Popular** - 50,000 requests for $14.99
