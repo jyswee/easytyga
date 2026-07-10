@@ -1,6 +1,6 @@
 {
   "name": "easytyga",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Tunnel your local AI to the internet. Secure. One command. Works with Ollama, OpenClaw, vLLM, and any HTTP service.",
   "bin": {
     "easytyga": "bin/cli.js"
@@ -30,7 +30,7 @@
     "test:all": "node --test test/unit/*.test.js test/integration/*.test.js test/e2e/*.test.js",
     "prepublishOnly": "npm run build"
   },
-  "author": "Joe Wee <jyswee@gmail.com>",
+  "author": "Tyga.Cloud Ltd <jyswee@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",

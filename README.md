@@ -17,7 +17,7 @@ npx easytyga
 
   Tunnel active
 
-  Public URL:  https://easytyga.com/t/abc123
+  Public URL:  https://relay.easytyga.com/t/abc123
   API Key:     et_a1b2c3d4e5f6...
 
   Credits:     50,000 requests remaining
@@ -28,7 +28,7 @@ npx easytyga
 
 That's it. Your local AI is now accessible from anywhere, secured with an API key.
 
-## Rent the whole box
+## The whole box, not just HTTP
 
 easytyga turns a tunnel into full remote access to your GPU pod. Beyond HTTP, you can reach **raw TCP** ports - SSH into the machine, drive its Docker daemon, open Jupyter or TensorBoard, sync files, or hit a database - all over the same secured, API-key-authenticated tunnel, with no public IP.
 
@@ -62,11 +62,11 @@ npx easytyga --tunnel ollama=http://localhost:11434 --tunnel vllm=http://localho
     vllm -> http://localhost:8000
 
   [ollama] Tunnel active
-  [ollama] Public URL:  https://easytyga.com/t/abc123
+  [ollama] Public URL:  https://relay.easytyga.com/t/abc123
   [ollama] API Key:     et_a1b2c3d4...
 
   [vllm] Tunnel active
-  [vllm] Public URL:  https://easytyga.com/t/def456
+  [vllm] Public URL:  https://relay.easytyga.com/t/def456
   [vllm] API Key:     et_e5f6g7h8...
 ```
 
@@ -186,14 +186,14 @@ ngrok is a great general-purpose tunnel. easytyga is built specifically for self
 | API key auth on every endpoint | Yes, auto-generated, always on | HTTP/HTTPS only (not TCP); auth is opt-in |
 | Raw TCP (SSH / Docker) | Yes, included, default-deny allowlist | Requires credit-card verification |
 | Service presets (Jupyter, TensorBoard, DB) | One-flag shortcuts built in | Manual port config |
-| Rent the whole box | SSH + Docker + notebooks in one tunnel | Per-endpoint agents, paid TCP |
+| The whole box, not just HTTP | SSH + Docker + notebooks in one tunnel | Per-endpoint agents, paid TCP |
 | Session length | Unlimited | 2 hour cap |
 | Interstitial warning page | None | Shown to all visitors |
 | GPU + model detection | Built in (NVIDIA, AMD, Apple Silicon) | No |
 | Multi-tunnel in one process | Yes, one WebSocket per tunnel | One agent per endpoint |
 | AI-native modes | `--openclaw`, Ollama/vLLM auto-detect | Generic HTTP only |
 | Pricing model | Credits, one-time, never expire | Monthly subscription |
-| Entry cost | $1 one-time activation (500 requests) | Free tier, then monthly plans |
+| Entry cost | $1 one-time activation (1,000 requests) | Free tier, then monthly plans |
 
 Numbers reflect ngrok's published Free plan as of 2026. See [ngrok.com/pricing](https://ngrok.com/pricing) for their current terms.
 
@@ -253,7 +253,7 @@ npx easytyga connect mypod --port 22 --local 2222
 | `--db <port>` | Preset: expose a database port (e.g. `5432`) |
 | `--server <url>` | Relay server URL |
 | `--key <key>` | Connection key |
-| `--list` | Register on the GPU marketplace |
+| `--list` | Advertise this tunnel to gpusmarket.com |
 | `--memory` | Enable persistent conversation memory |
 | `--help` | Show help |
 
@@ -301,7 +301,7 @@ Your IP stays private. No ports to open. Works from any network.
 
 ## Credits
 
-A one-time $1 activates your tunnel key and includes 500 requests. It is a spam-buster to keep the shared relay clean, not a profit centre. Beyond that, credit packs remove the rate limit and never expire.
+A one-time $1 activates your tunnel key and includes 1,000 requests (about 1,000 Ollama prompts). It is a spam-buster to keep the shared relay clean, not a profit centre. Beyond that, credit packs remove the rate limit and never expire.
 
 - **Starter** - 10,000 requests for $4.99
 - **Popular** - 50,000 requests for $14.99
@@ -312,7 +312,7 @@ Buy credits at [easytyga.com/credits](https://easytyga.com/credits). Manage your
 ## Integrations
 
 - **[OpenClaw](https://openclaw.ai)** - Tunnel your personal AI assistant gateway to the internet for WhatsApp, Telegram, Slack, Discord, Signal, and 20+ channels (`--openclaw`)
-- **[gpusmarket.com](https://gpusmarket.com)** - List your GPU on the peer-to-peer rental marketplace and earn money (`--list`)
+- **[gpusmarket.com](https://gpusmarket.com)** - A peer-to-peer GPU rental marketplace built on easytyga. Advertise a tunnel to it with `--list`
 - **[agenticmemory.ai](https://agenticmemory.ai)** - Add persistent conversation memory to your AI (`--memory`)
 
 See [easytyga.com](https://easytyga.com) for documentation.
@@ -325,12 +325,12 @@ MIT
 
 ## Trademarks
 
-"easytyga" and the easytyga logo are trademarks of Joe Wee. The name and branding may not be used in derivative works without written permission.
+"easytyga" and the easytyga logo are trademarks of Tyga.Cloud Ltd. easytyga is a division of Tyga.Cloud Ltd. The name and branding may not be used in derivative works without written permission.
 
-This software is provided under the MIT license - you are free to use, modify, and distribute the code, but the easytyga name, branding, and relay infrastructure remain the property of the author.
+This software is provided under the MIT license - you are free to use, modify, and distribute the code, but the easytyga name, branding, and relay infrastructure remain the property of Tyga.Cloud Ltd.
 
 Ollama is a trademark of Ollama, Inc. OpenClaw is a trademark of OpenClaw contributors. vLLM is a trademark of vLLM contributors. NVIDIA, GeForce, and RTX are trademarks of NVIDIA Corporation. AMD and Radeon are trademarks of AMD. Apple and Apple Silicon are trademarks of Apple Inc. All other trademarks are the property of their respective owners. This project is not affiliated with or endorsed by any of these companies.
 
 ---
 
-Built by [Joe Wee](https://github.com/jyswee)
+A [Tyga.Cloud Ltd](https://easytyga.com) product. Built by [jyswee](https://github.com/jyswee).
